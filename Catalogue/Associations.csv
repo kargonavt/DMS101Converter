@@ -1,0 +1,17 @@
+AdditionalInformation;AddInform
+AidsToNavigationAssociation;AidNavAss
+ASLAggregation;ASLAgg
+BridgeAggregation;BRIDGEAgg
+CautionAreaAssociation;CTNAREAss
+DeepWaterRouteAggregation;DeeWatRouAgg
+FairwayAggregation;FairSysAgg
+FairwayAuxiliary;FairAuxAgg
+IslandAggregation;IslandGroupAgg
+MooringTrotAggregation;MoorTrotAgg
+PilotageDistrictAssociation;PilotDistAss
+RangeSystemAggregation;RangSystAgg
+StructureEquipment;StrucEquipAgg
+TextAssociation;TextAss
+TrafficSeparationSchemeAggregation;TrafSepSchemeAgg
+TwoWayRouteAggregation;TwoWayRouAgg
+UpdatedInformation;UpdateInfAss

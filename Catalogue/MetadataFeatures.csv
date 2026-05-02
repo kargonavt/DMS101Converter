@@ -1,0 +1,9 @@
+QualityOfNonBathymetricData;M_ACCY
+DataCoverage;M_COVR
+NavigationalSystemOfMarks;M_NSYS1
+LocalDirectionOfBuoyage;M_NSYS2
+QualityOfBathymetricData;M_QUAL
+SoundingDatum;M_SDAT
+VerticalDatumOfData;M_VDAT
+QualityOfSurvey;M_SREL
+UpdateInformation;UpdateInf

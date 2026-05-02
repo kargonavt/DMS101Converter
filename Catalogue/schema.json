@@ -1,0 +1,1489 @@
+{
+  "message": "Add S-100",
+  "patchSchemas": {
+    "API": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "definitions": {
+          "ApiInfoResponse": {
+            "properties": {
+              "API version": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "API version"
+            ],
+            "type": "object"
+          },
+          "BranchesResponse": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "CatalogueResponse": {
+            "$ref": "file:///oosdb/S100/FeatureCatalogue.json"
+          },
+          "CommitInfoResponse": {
+            "additionalProperties": false,
+            "properties": {
+              "author": {
+                "type": "string"
+              },
+              "cid": {
+                "type": "string"
+              },
+              "date": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "parents": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "ContentResponse": {
+            "$ref": "file:///oosdb/CommitContent.json"
+          },
+          "CreateCommitRequest": {
+            "additionalProperties": false,
+            "maxProperties": 3,
+            "minProperties": 3,
+            "properties": {
+              "branch": {
+                "type": "string"
+              },
+              "catalogue": {
+                "$ref": "file:///oosdb/S100/FeatureCatalogue.json"
+              },
+              "message": {
+                "$ref": "file:///oosdb/CommitMessage.json#"
+              },
+              "patch": {
+                "additionalProperties": {
+                  "$ref": "file:///oosdb/Patch.json#"
+                },
+                "minProperties": 1,
+                "type": "object"
+              }
+            },
+            "required": [
+              "branch",
+              "message"
+            ],
+            "type": "object"
+          },
+          "CreateCommitResponse": {
+            "additionalProperties": false,
+            "properties": {
+              "commit": {
+                "type": "string"
+              },
+              "warnings": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "commit"
+            ],
+            "type": "object"
+          },
+          "DiffResponse": {
+            "additionalProperties": {
+              "$ref": "file:///oosdb/Patch.json"
+            },
+            "type": "object"
+          },
+          "LogResponse": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "commit": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "commit",
+                "message"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "PutBranchRequest": {
+            "additionalProperties": false,
+            "maxProperties": 1,
+            "minProperties": 1,
+            "properties": {
+              "branch": {
+                "type": "string"
+              },
+              "commit": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "id": "file:///oosdb/API.json#"
+      }
+    ],
+    "Branches": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "definitions": {
+          "Branches": {
+            "maxItems": 1,
+            "minItems": 1,
+            "type": "array"
+          },
+          "id": "file:///oosdb/Branches.json#",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Branches"
+            }
+          ]
+        }
+      }
+    ],
+    "CommitContent": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/CommitContent.json#",
+        "patternProperties": {
+          "^(O/V/|O/I/|O/S/P/|O/S/P3/|O/S/MP/|O/S/MP3/|O/S/C/|O/S/CC/|O/S/S/|O/F/|)[^/]+$": {
+            "$ref": "file:///oosdb/S100/Object.json#"
+          }
+        },
+        "title": "Commit Objects",
+        "type": "object"
+      }
+    ],
+    "CommitMessage": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "id": "file:///oosdb/CommitMessage.json#",
+        "title": "Commit Message Object",
+        "type": "string"
+      }
+    ],
+    "InformationAssociations": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "id": "file:///oosdb/InformationAssociations.json",
+        "items": {
+          "$ref": "file:///oosdb/S100/InformationBinding.json#"
+        },
+        "type": "array"
+      }
+    ],
+    "Patch": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "definitions": {
+          "Added": {
+            "maxItems": 1,
+            "minItems": 1,
+            "type": "array"
+          },
+          "ArrayMove": {
+            "items": [
+              {
+                "enum": [
+                  ""
+                ]
+              },
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "enum": [
+                  3
+                ]
+              }
+            ],
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "ArrayWithInnerChanges": {
+            "additionalProperties": false,
+            "minProperties": 1,
+            "patternProperties": {
+              "^(0|[1-9][0-9]*)$": {
+                "oneOf": [
+                  {
+                    "$ref": "#/definitions/Added"
+                  },
+                  {
+                    "$ref": "#/definitions/Modified"
+                  },
+                  {
+                    "$ref": "#/definitions/TextDiff"
+                  },
+                  {
+                    "$ref": "#/definitions/ObjectWithInnerChanges"
+                  },
+                  {
+                    "$ref": "#/definitions/ArrayWithInnerChanges"
+                  }
+                ]
+              },
+              "^_(0|[1-9][0-9]*)$": {
+                "oneOf": [
+                  {
+                    "$ref": "#/definitions/Deleted"
+                  },
+                  {
+                    "$ref": "#/definitions/ArrayMove"
+                  }
+                ]
+              }
+            },
+            "properties": {
+              "_t": {
+                "enum": [
+                  "a"
+                ]
+              }
+            },
+            "required": [
+              "_t"
+            ],
+            "type": "object"
+          },
+          "Deleted": {
+            "items": [
+              {},
+              {
+                "enum": [
+                  0
+                ]
+              },
+              {
+                "enum": [
+                  0
+                ]
+              }
+            ],
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "Modified": {
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "ObjectWithInnerChanges": {
+            "additionalProperties": {
+              "$ref": "#"
+            },
+            "minProperties": 1,
+            "type": "object"
+          },
+          "TextDiff": {
+            "items": [
+              {
+                "type": "string"
+              },
+              {
+                "enum": [
+                  0
+                ]
+              },
+              {
+                "enum": [
+                  2
+                ]
+              }
+            ],
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          }
+        },
+        "id": "file:///oosdb/Patch.json#",
+        "oneOf": [
+          {
+            "$ref": "#/definitions/Added"
+          },
+          {
+            "$ref": "#/definitions/Modified"
+          },
+          {
+            "$ref": "#/definitions/TextDiff"
+          },
+          {
+            "$ref": "#/definitions/ObjectWithInnerChanges"
+          },
+          {
+            "$ref": "#/definitions/ArrayWithInnerChanges"
+          },
+          {
+            "$ref": "#/definitions/Deleted"
+          }
+        ]
+      }
+    ],
+    "Reference": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "description": "Reference string prefix encodes object type.\nE.g. MultiPoint3D objects identifiers must have 'O/S/MP3/' prefix.",
+        "id": "file:///oosdb/Reference.json#",
+        "pattern": "^(O/I/|O/S/P/|O/S/P3/|O/S/MP/|O/S/MP3/|O/S/C/|O/S/CC/|O/S/S/|O/F/|)[^/]+$",
+        "title": "Reference",
+        "type": "string"
+      }
+    ],
+    "S100/CompositeCurve": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/CompositeCurve.json#",
+        "properties": {
+          "components": {
+            "items": {
+              "$ref": "file:///oosdb/S100/CurveComponent.json"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "informationAssociations": {
+            "$ref": "file:///oosdb/InformationAssociations.json#"
+          },
+          "guID": {}
+        },
+        "required": [
+          "components"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/Coordinates2D": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/Coordinates2D.json#",
+        "properties": {
+          "lat": {
+            "$ref": "file:///oosdb/WGS84Lat.json"
+          },
+          "lon": {
+            "$ref": "file:///oosdb/WGS84Lon.json"
+          },
+          "guID": {}
+        },
+        "required": [
+          "lon",
+          "lat"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/Coordinates3D": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/Coordinates3D.json#",
+        "properties": {
+          "height": {
+            "type": "number"
+          },
+          "lat": {
+            "$ref": "file:///oosdb/WGS84Lat.json"
+          },
+          "lon": {
+            "$ref": "file:///oosdb/WGS84Lon.json"
+          },
+          "guID": {}
+        },
+        "required": [
+          "lon",
+          "lat",
+          "height"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/Curve": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/Curve.json#",
+        "properties": {
+          "endPoint": {
+            "$ref": "file:///oosdb/Reference.json"
+          },
+          "informationAssociations": {
+            "$ref": "file:///oosdb/InformationAssociations.json#"
+          },
+          "internalPoints": {
+            "items": {
+              "$ref": "file:///oosdb/S100/Coordinates2D.json#"
+            },
+            "type": "array"
+          },
+          "interpolationType": {
+            "enum": [
+              "geodesic",
+              "loxodromic"
+            ],
+            "type": "string"
+          },
+          "startPoint": {
+            "$ref": "file:///oosdb/Reference.json"
+          },
+          "guID": {}
+        },
+        "required": [
+          "interpolationType",
+          "startPoint",
+          "endPoint"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/CurveComponent": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/CurveComponent.json#",
+        "properties": {
+          "orientation": {
+            "enum": [
+              "forward",
+              "backward"
+            ],
+            "type": "string"
+          },
+          "ref": {
+            "$ref": "file:///oosdb/Reference.json"
+          },
+          "guID": {}
+        },
+        "required": [
+          "ref",
+          "orientation"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/Feature": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/Feature.json#",
+        "properties": {
+          "attributes": {
+            "type": "object"
+          },
+          "code": {
+            "type": "string"
+          },
+          "featureAssociations": {
+            "items": {
+              "$ref": "file:///oosdb/S100/FeatureBinding.json#"
+            },
+            "type": "array"
+          },
+          "geometry": {
+            "items": {
+              "$ref": "file:///oosdb/S100/GeometryComponent.json#"
+            },
+            "type": "array"
+          },
+          "globalId": {
+            "type": "string"
+          },
+          "informationAssociations": {
+            "$ref": "file:///oosdb/InformationAssociations.json#"
+          },
+          "spatialMask": {
+            "items": {
+              "$ref": "file:///oosdb/Reference.json"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "code",
+          "globalId",
+          "attributes",
+          "geometry"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/FeatureBinding": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/FeatureBinding.json#",
+        "properties": {
+          "associationCode": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "object"
+          },
+          "ref": {
+            "$ref": "file:///oosdb/Reference.json#"
+          },
+          "roleCode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "associationCode",
+          "roleCode"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/FeatureCatalogue": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Attribute": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/Item"
+              },
+              {
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "Attribute"
+                    ]
+                  }
+                }
+              },
+              {
+                "oneOf": [
+                  {
+                    "properties": {
+                      "constraints": {
+                        "$ref": "#/definitions/AttributeConstraints"
+                      },
+                      "listedValues": {
+                        "items": {
+                          "$ref": "#/definitions/ListedValue"
+                        },
+                        "minItems": 1,
+                        "type": "array"
+                      },
+                      "quantitySpecification": {
+                        "enum": [
+                          "angularVelocity",
+                          "area",
+                          "density",
+                          "duration",
+                          "frequency",
+                          "length",
+                          "mass",
+                          "planeAngle",
+                          "power",
+                          "pressure",
+                          "salinity",
+                          "speed",
+                          "temperature",
+                          "volume",
+                          "weight",
+                          "otherQuantity"
+                        ],
+                        "type": "string"
+                      },
+                      "uom": {
+                        "properties": {
+                          "definition": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "symbol": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "valueType": {
+                        "enum": [
+                          "boolean",
+                          "enumeration",
+                          "integer",
+                          "real",
+                          "text",
+                          "date",
+                          "time",
+                          "dateTime",
+                          "URI",
+                          "URL",
+                          "URN",
+                          "S100_TruncatedDate"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "valueType"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "children": {
+                        "items": {
+                          "$ref": "#/definitions/AttributeBinding"
+                        },
+                        "minItems": 1,
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "children"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            ]
+          },
+          "AttributeBinding": {
+            "properties": {
+              "code": {
+                "$ref": "#/definitions/Code"
+              },
+              "multiplicity": {
+                "$ref": "#/definitions/Multiplicity"
+              },
+              "permittedValues": {
+                "items": {
+                  "type": "integer"
+                },
+                "minItems": 1,
+                "type": "array"
+              },
+              "sequential": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "multiplicity",
+              "sequential",
+              "code"
+            ],
+            "type": "object"
+          },
+          "AttributeConstraints": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "minProperties": 1,
+                "properties": {
+                  "stringLength": {
+                    "minValue": 1,
+                    "type": "integer"
+                  },
+                  "textPattern": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "minProperties": 1,
+                "properties": {
+                  "precision": {
+                    "minValue": 0,
+                    "type": "integer"
+                  },
+                  "range": {
+                    "properties": {
+                      "closure": {
+                        "enum": [
+                          "openInterval",
+                          "geLtInterval",
+                          "gtLeInterval",
+                          "closedInterval",
+                          "gtSemiInterval",
+                          "geSemiInterval",
+                          "ltSemiInterval",
+                          "leSemiInterval"
+                        ],
+                        "type": "string"
+                      },
+                      "lower": {
+                        "type": "number"
+                      },
+                      "upper": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "closure"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            ]
+          },
+          "Code": {
+            "type": "string"
+          },
+          "FeatureAssociation": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/Item"
+              },
+              {
+                "properties": {
+                  "attributes": {
+                    "items": {
+                      "$ref": "#/definitions/AttributeBinding"
+                    },
+                    "type": "array"
+                  },
+                  "isAbstract": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "parent": {
+                    "$ref": "#/definitions/Code"
+                  },
+                  "roles": {
+                    "items": {
+                      "$ref": "#/definitions/Code"
+                    },
+                    "maxItems": 2,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "type": {
+                    "enum": [
+                      "FeatureAssociation"
+                    ]
+                  }
+                },
+                "required": [
+                  "roles"
+                ]
+              }
+            ]
+          },
+          "FeatureBinding": {
+            "properties": {
+              "association": {
+                "$ref": "#/definitions/Code"
+              },
+              "multiplicity": {
+                "$ref": "#/definitions/Multiplicity"
+              },
+              "role": {
+                "$ref": "#/definitions/Code"
+              },
+              "roleType": {
+                "$ref": "#/definitions/RoleType"
+              },
+              "targetFeature": {
+                "$ref": "#/definitions/Code"
+              }
+            },
+            "required": [
+              "multiplicity",
+              "roleType",
+              "association",
+              "role",
+              "targetFeature"
+            ],
+            "type": "object"
+          },
+          "FeatureType": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/Item"
+              },
+              {
+                "properties": {
+                  "attributes": {
+                    "items": {
+                      "$ref": "#/definitions/AttributeBinding"
+                    },
+                    "type": "array"
+                  },
+                  "featureAssociations": {
+                    "items": {
+                      "$ref": "#/definitions/FeatureBinding"
+                    },
+                    "type": "array"
+                  },
+                  "featureUseType": {
+                    "enum": [
+                      "geographic",
+                      "meta",
+                      "cartographic",
+                      "theme",
+                      "aggregation"
+                    ],
+                    "type": "string"
+                  },
+                  "informationAssociations": {
+                    "items": {
+                      "$ref": "#/definitions/InformationBinding"
+                    },
+                    "type": "array"
+                  },
+                  "isAbstract": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "parent": {
+                    "$ref": "#/definitions/Code"
+                  },
+                  "permittedPrimitives": {
+                    "items": {
+                      "enum": [
+                        "point",
+                        "pointSet",
+                        "curve",
+                        "surface",
+                        "coverage"
+                      ],
+                      "type": "string"
+                    },
+                    "type": "array",
+                    "uniqueItems": true
+                  },
+                  "type": {
+                    "enum": [
+                      "Feature"
+                    ]
+                  }
+                },
+                "required": [
+                  "attributes",
+                  "featureUseType",
+                  "permittedPrimitives"
+                ]
+              }
+            ]
+          },
+          "InformationAssociation": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/Item"
+              },
+              {
+                "properties": {
+                  "attributes": {
+                    "items": {
+                      "$ref": "#/definitions/AttributeBinding"
+                    },
+                    "type": "array"
+                  },
+                  "isAbstract": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "parent": {
+                    "$ref": "#/definitions/Code"
+                  },
+                  "role": {
+                    "$ref": "#/definitions/Code"
+                  },
+                  "type": {
+                    "enum": [
+                      "InformationAssociation"
+                    ]
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              }
+            ]
+          },
+          "InformationBinding": {
+            "properties": {
+              "association": {
+                "$ref": "#/definitions/Code"
+              },
+              "multiplicity": {
+                "$ref": "#/definitions/Multiplicity"
+              },
+              "roleType": {
+                "$ref": "#/definitions/RoleType"
+              },
+              "targetInformation": {
+                "$ref": "#/definitions/Code"
+              }
+            },
+            "required": [
+              "multiplicity",
+              "roleType",
+              "association",
+              "targetInformation"
+            ],
+            "type": "object"
+          },
+          "InformationType": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/Item"
+              },
+              {
+                "properties": {
+                  "attributes": {
+                    "items": {
+                      "$ref": "#/definitions/AttributeBinding"
+                    },
+                    "type": "array"
+                  },
+                  "informationAssociations": {
+                    "items": {
+                      "$ref": "#/definitions/InformationBinding"
+                    },
+                    "type": "array"
+                  },
+                  "isAbstract": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "parent": {
+                    "$ref": "#/definitions/Code"
+                  },
+                  "type": {
+                    "enum": [
+                      "Information"
+                    ]
+                  }
+                },
+                "required": [
+                  "attributes"
+                ]
+              }
+            ]
+          },
+          "Item": {
+            "properties": {
+              "aliases": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "definition": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "remarks": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "definition",
+              "type"
+            ],
+            "type": "object"
+          },
+          "ListedValue": {
+            "properties": {
+              "aliases": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "code": {
+                "minValue": 1,
+                "type": "integer"
+              },
+              "definition": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "remarks": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "definition",
+              "code"
+            ],
+            "type": "object"
+          },
+          "Multiplicity": {
+            "properties": {
+              "lower": {
+                "default": 0,
+                "minValue": 0,
+                "type": "integer"
+              },
+              "upper": {
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "ResponsibleParty": {},
+          "Role": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/Item"
+              },
+              {
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "Role"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          "RoleType": {
+            "enum": [
+              "association",
+              "aggregation",
+              "composition"
+            ],
+            "type": "string"
+          }
+        },
+        "id": "file:///oosdb/S100/FeatureCatalogue.json#",
+        "properties": {
+          "fieldOfApplication": {
+            "type": "string"
+          },
+          "items": {
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/Role"
+                },
+                {
+                  "$ref": "#/definitions/InformationAssociation"
+                },
+                {
+                  "$ref": "#/definitions/FeatureAssociation"
+                },
+                {
+                  "$ref": "#/definitions/InformationType"
+                },
+                {
+                  "$ref": "#/definitions/FeatureType"
+                },
+                {
+                  "$ref": "#/definitions/Attribute"
+                }
+              ]
+            },
+            "minProperties": 1,
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "producer": {
+            "$ref": "#/definitions/ResponsibleParty"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "versionDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "versionNumber": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "scope",
+          "versionNumber",
+          "versionDate",
+          "producer",
+          "items"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/GeometryComponent": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/GeometryComponent.json#",
+        "properties": {
+          "orientation": {
+            "enum": [
+              "forward",
+              "backward"
+            ],
+            "type": "string"
+          },
+          "ref": {
+            "$ref": "file:///oosdb/Reference.json"
+          },
+          "scaleRange": {
+            "$ref": "file:///oosdb/S100/ScaleRange.json#"
+          },
+          "guID": {}
+        },
+        "required": [
+          "ref",
+          "scaleRange"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/Information": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/Information.json",
+        "properties": {
+          "attributes": {
+            "type": "object"
+          },
+          "code": {
+            "type": "string"
+          },
+          "informationAssociations": {
+            "$ref": "file:///oosdb/InformationAssociations.json"
+          }
+        },
+        "required": [
+          "code",
+          "attributes"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/InformationBinding": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/InformationBinding.json#",
+        "properties": {
+          "associationCode": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "object"
+          },
+          "ref": {
+            "$ref": "file:///oosdb/Reference.json#"
+          }
+        },
+        "required": [
+          "ref",
+          "associationCode"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/MultiPoint2D": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/MultiPoint2D.json#",
+        "properties": {
+          "coordinates": {
+            "items": {
+              "$ref": "file:///oosdb/S100/Coordinates2D.json#"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "informationAssociations": {
+            "$ref": "file:///oosdb/InformationAssociations.json#"
+          },
+          "guID": {}
+        },
+        "required": [
+          "coordinates"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/MultiPoint3D": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/MultiPoint3D.json#",
+        "properties": {
+          "coordinates": {
+            "items": {
+              "$ref": "file:///oosdb/S100/Coordinates3D.json#"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "informationAssociations": {
+            "$ref": "file:///oosdb/InformationAssociations.json#"
+          },
+          "verticalCrs": {
+            "type": "string"
+          },
+          "guID": {}
+        },
+        "required": [
+          "coordinates",
+          "verticalCrs"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/Object": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "id": "file:///oosdb/S100/Object.json#",
+        "oneOf": [
+          {
+            "$ref": "file:///oosdb/S100/Information.json#"
+          },
+          {
+            "$ref": "file:///oosdb/S100/Point2D.json#"
+          },
+          {
+            "$ref": "file:///oosdb/S100/Point3D.json#"
+          },
+          {
+            "$ref": "file:///oosdb/S100/MultiPoint2D.json#"
+          },
+          {
+            "$ref": "file:///oosdb/S100/MultiPoint3D.json#"
+          },
+          {
+            "$ref": "file:///oosdb/S100/Curve.json#"
+          },
+          {
+            "$ref": "file:///oosdb/S100/CompositeCurve.json#"
+          },
+          {
+            "$ref": "file:///oosdb/S100/Surface.json#"
+          },
+          {
+            "$ref": "file:///oosdb/S100/Feature.json#"
+          }
+        ],
+        "title": "Database Object",
+        "type": "object"
+      }
+    ],
+    "S100/Point2D": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/Point2D.json",
+        "properties": {
+          "informationAssociations": {
+            "$ref": "file:///oosdb/InformationAssociations.json"
+          },
+          "lat": {
+            "$ref": "file:///oosdb/WGS84Lat.json"
+          },
+          "lon": {
+            "$ref": "file:///oosdb/WGS84Lon.json"
+          },
+          "guID": {}
+        },
+        "required": [
+          "lat",
+          "lon"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/Point3D": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/Point3D.json",
+        "properties": {
+          "height": {
+            "type": "number"
+          },
+          "informationAssociations": {
+            "$ref": "file:///oosdb/InformationAssociations.json"
+          },
+          "lat": {
+            "$ref": "file:///oosdb/WGS84Lat.json"
+          },
+          "lon": {
+            "$ref": "file:///oosdb/WGS84Lon.json"
+          },
+          "verticalCrs": {
+            "type": "string"
+          },
+          "guID": {},
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          },
+          "z": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lon",
+          "height",
+          "verticalCrs"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/RingComponent": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/RingComponent.json#",
+        "properties": {
+          "exteriorInterior": {
+            "enum": [
+              "exterior",
+              "interior"
+            ],
+            "type": "string"
+          },
+          "orientation": {
+            "enum": [
+              "forward",
+              "backward"
+            ],
+            "type": "string"
+          },
+          "ref": {
+            "$ref": "file:///oosdb/Reference.json"
+          },
+          "guID": {}
+        },
+        "required": [
+          "ref",
+          "orientation",
+          "exteriorInterior"
+        ],
+        "type": "object"
+      }
+    ],
+    "S100/ScaleRange": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/ScaleRange.json#",
+        "properties": {
+          "lower": {
+            "exclusiveMinimum": true,
+            "minimum": 0,
+            "type": "number"
+          },
+          "upper": {
+            "type": "number"
+          }
+        },
+        "type": "object"
+      }
+    ],
+    "S100/Surface": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "id": "file:///oosdb/S100/Surface.json#",
+        "properties": {
+          "informationAssociations": {
+            "$ref": "file:///oosdb/InformationAssociations.json#"
+          },
+          "rings": {
+            "items": {
+              "$ref": "file:///oosdb/S100/RingComponent.json#"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "guID": {}
+        },
+        "required": [
+          "rings"
+        ],
+        "type": "object"
+      }
+    ],
+    "Search": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "definitions": {
+          "Search": {
+            "maxItems": 1,
+            "minItems": 1,
+            "type": "array"
+          },
+          "id": "file:///oosdb/Search.json#",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Search"
+            }
+          ]
+        }
+      }
+    ],
+    "WGS84Lat": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "exclusiveMaximum": true,
+        "exclusiveMinimum": true,
+        "id": "file:///oosdb/WGS84Lat.json",
+        "maximum": 90,
+        "minimum": -90,
+        "type": "number"
+      }
+    ],
+    "WGS84Lon": [
+      {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "id": "file:///oosdb/WGS84Lon.json",
+        "maximum": 180,
+        "minimum": -180,
+        "type": "number"
+      }
+    ]
+  }
+}
