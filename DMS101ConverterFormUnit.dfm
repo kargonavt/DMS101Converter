@@ -39,6 +39,7 @@ object DMS101ConverterForm: TDMS101ConverterForm
     Width = 233
     Height = 25
     Caption = #1055#1072#1082#1077#1090#1085#1086#1077' '#1087#1088#1077#1086#1073#1088#1072#1079#1086#1074#1072#1085#1080#1077' DM --> S-101'
+    Enabled = False
     TabOrder = 2
   end
   object OpenDialog1: TOpenDialog

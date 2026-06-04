@@ -3,7 +3,7 @@ unit DMChainToJSONUnit;
 interface
 
 uses
-  Windows, SysUtils, Classes, StrUtils, Contnrs, Forms, SyncObjs,
+  Windows, SysUtils, Classes, StrUtils, Contnrs, Forms, Dialogs, SyncObjs,
       OTypes, dmw_Use, uLkJSON, S101TypesUnit, ProgressFormUnit;
 
 type
@@ -120,7 +120,7 @@ type
     function GeometryToJSON(feature: TFeature; jlGeometry: TlkJSONlist; jsPatch: TlkJSONobject): Boolean;
     function ObjectsToJSON(mapPath, logName: string; var sError: string): Boolean;
     function ObjectsFromJSON(jsonPath, logPath: string; var sError: string): Boolean;
-    procedure ChainDataFromDM;
+    function ChainDataFromDM(var sError: string): Boolean;
     function CreateAndOrderFeatureClasses: Boolean;
     function RunInWorkingThread(sFileName, sLogName: string; var sError: string): Integer; virtual;
     function UpdateProgress(sMessage: string; iPos, iMax: Integer): Boolean;
@@ -1127,7 +1127,8 @@ begin
     // »мпортируем цепочно-узловую структуру из DM-файла
     if UpdateProgress('»мпортируем цепочно-узловую структуру из DM-файла', 0, 0) then
       Exit;
-    ChainDataFromDM;
+    if not ChainDataFromDM(sError) then
+      Exit;
     CreateAndOrderFeatureClasses;
 
     // Ёкспортируем геометрические примитивы в JSON
@@ -1242,7 +1243,7 @@ begin
   end;
 end;
 
-procedure TDMChainToJSON.ChainDataFromDM;
+function TDMChainToJSON.ChainDataFromDM(var sError: string): Boolean;
 var
   nNodes, nEdges, nObjects, nRefs, id, i, j, k, objLevel, loc, nPolyCount, nSize: Integer;
   iEdgeInComposite, iNode1, iNode2, compositeID, surfaceID, nEqualNodes, iTemp, iPos: Integer;
@@ -1274,6 +1275,7 @@ var
   bNewComposite: Boolean;
   bStop: Boolean;
 begin
+  Result := False;
   // ќбрабатываем узлы
   nNodes := dm_Get_vc_Count;
   for i := 0 to nNodes - 1 do begin
@@ -1346,7 +1348,10 @@ begin
   end;
 
   // —обираем "живые" объекты с карты
-  dm_open_idx;
+  if not dm_open_idx then begin
+    sError := ' лассификатор карты не найден';
+    Exit;
+  end;
   nObjects := 0;
   multipointID := 1;
   if (dm_Goto_Root > 0) and dm_Goto_down then begin
@@ -1877,6 +1882,7 @@ begin
       end;
     end;
   end;
+  Result := True;
 end;
 
 function TDMChainToJSON.ObjectsFromJSON(jsonPath, logPath: string; var sError: string): Boolean;

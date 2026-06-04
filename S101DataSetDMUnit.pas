@@ -87,7 +87,8 @@ begin
   try
     Writeln(tfDebugLog, Format('Экспорт карты %s в S-101', [mapPath]));
     Flush(tfDebugLog);
-    dmChainToJSON.ChainDataFromDM;
+    if not dmChainToJSON.ChainDataFromDM(sError) then
+      Exit;
 //    dmChainToJSON.CreateAndOrderFeatureClasses;
     OrderFeatures(dmChainToJSON, sWarning);
     for i := 0 to dmChainToJSON.features.Count - 1 do
@@ -1458,8 +1459,12 @@ begin
           curPAIX := 0
         else
           curPAIX := TInteger(paixStack.Peek).iValue;
-        if PAIX > curPAIX then
-          Exit;
+//        if PAIX > curPAIX then
+//          Exit;
+        if PAIX > curPAIX then begin
+          i := i + 1;
+          Continue;
+        end;
         while (curPAIX > 0) and (PAIX < curPAIX) do begin
           dm_Goto_Upper;
           paixStack.Pop;
@@ -1686,6 +1691,7 @@ var
   point: TPoint;
   pXYLine: PLLine;
   pZLine: PIntegers;
+  bStop: Boolean;
 begin
   Result := False;
   if dmPath = '' then
@@ -1827,8 +1833,10 @@ begin
           //////////////////////////////////////////////////////////////////////
           if (Length(fATTRArray) > 0) and (Length(fATTRArray[0].arrayOfAttrElem) > 0) then
             if not InsertAttributesInDM(TAttrElemArray(fATTRArray[0].arrayOfAttrElem),
-                atcsPosIds, ssAttributes) then
+                atcsPosIds, ssAttributes) then begin
+              sError := Format('Не удалось добавить в карту атрибуты информационного объекта %s(%d)', [sTheir, fIRID.RCID]);
               Exit;
+            end;
         end;
       end;
 
@@ -1879,8 +1887,12 @@ begin
               end;
               MultiPointRecordType: begin
                 index := multipointsPosIds.GetPosById(geomRCID);
-                if index < 0 then
+                if index < 0 then begin
+                  sError := Format('Ошибка при обработке геообъекта %s(%d). ' +
+                      'Не удалось найти в массиве multipointsPosIds идентификатор %d',
+                      [sTheir, fFRID.RCID, geomRCID]);
                   Exit;
+                end;
                 with multiPointRecords[index] do begin
                   case ct of
                     ct3I:
@@ -1911,22 +1923,34 @@ begin
               end;
               CurveRecordType: begin
                 pXYLine := nil;
-                if not GetCurveGeometry(geomRCID, geomORNT, curvesPosIds, pXYLine) then
+                if not GetCurveGeometry(geomRCID, geomORNT, curvesPosIds, pXYLine) then begin
+                  sError := Format('Ошибка при обработке геообъекта %s(%d). ' +
+                      'Ошибка при выполнении функции GetCurveGeometry',
+                      [sTheir, fFRID.RCID]);
                   Exit;
+                end;
                 dm_Add_Poly(objRec.code, 2, 0, pXYLine, False);
                 FreeMem(pXYLine);
               end;
               CompositeCurveRecordType: begin
                 pXYLine := nil;
-                if not GetCompositeGeometry(geomRCID, geomORNT, compositesPosIds, curvesPosIds, pXYLine) then
+                if not GetCompositeGeometry(geomRCID, geomORNT, compositesPosIds, curvesPosIds, pXYLine) then begin
+                  sError := Format('Ошибка при обработке геообъекта %s(%d). ' +
+                      'Ошибка при выполнении функции GetCompositeGeometry',
+                      [sTheir, fFRID.RCID]);
                   Exit;
+                end;
                 dm_Add_Poly(objRec.code, 2, 0, pXYLine, False);
                 FreeMem(pXYLine);
               end;
               SurfaceRecordType: begin
                 index := surfacesPosIds.GetPosById(geomRCID);
-                if index < 0 then
+                if index < 0 then begin
+                  sError := Format('Ошибка при обработке геообъекта %s(%d). ' +
+                      'Не удалось найти в массиве surfacesPosIds идентификатор %d',
+                      [sTheir, fFRID.RCID, geomRCID]);
                   Exit;
+                end;
                 ringNo := 0;
                 with surfaceRecords[index] do begin
                   for j := 0 to High(fRIASArray) do begin
@@ -1934,15 +1958,27 @@ begin
                       pXYLine := nil;
                       with fRIASArray[j].RIASArray[k] do begin
                         if RRNM = Ord(CompositeCurveRecordType) then begin
-                          if not GetCompositeGeometry(RRID, ORNT, compositesPosIds, curvesPosIds, pXYLine) then
+                          if not GetCompositeGeometry(RRID, ORNT, compositesPosIds, curvesPosIds, pXYLine) then begin
+                            sError := Format('Ошибка при обработке геообъекта %s(%d). ' +
+                                'Ошибка при выполнении функции GetCompositeGeometry при обработке поверхности %d',
+                                [sTheir, fFRID.RCID, geomRCID]);
                             Exit;
+                          end;
                         end
                         else if RRNM = Ord(CurveRecordType) then begin
-                          if not GetCurveGeometry(RRID, ORNT, curvesPosIds, pXYLine) then
+                          if not GetCurveGeometry(RRID, ORNT, curvesPosIds, pXYLine) then begin
+                            sError := Format('Ошибка при обработке геообъекта %s(%d). ' +
+                                'Ошибка при выполнении функции GetCurveGeometry при обработке поверхности %d',
+                                [sTheir, fFRID.RCID, geomRCID]);
                             Exit;
+                          end;
                         end
-                        else
+                        else begin
+                          sError := Format('Ошибка при обработке геообъекта %s(%d). ' +
+                              'Ссылка на недопустимый тип %d при обработке поверхности %d',
+                              [sTheir, fFRID.RCID, RRNM, geomRCID]);
                           Exit;
+                        end;
                       end;
                       // Внутренние кольца - дочерние объекты. Они располагаются на уровне 3.
                       // Для первого внутреннего кольца (ringNo = 2) мы должны перейти
@@ -1966,10 +2002,14 @@ begin
             dm_Add_Object(objRec.code, 50, 2, nil, nil, nil, False);
           end;
           dm_Put_Long(1000, fFRID.RCID);
+          if fFRID.RCID = 3 then
+            bStop := True;
           if (Length(fATTRArray) > 0) and (Length(fATTRArray[0].arrayOfAttrElem) > 0) then
             if not InsertAttributesInDM(TAttrElemArray(fATTRArray[0].arrayOfAttrElem),
-                atcsPosIds, ssAttributes) then
+                atcsPosIds, ssAttributes) then begin
+              sError := Format('Не удалось добавить в карту атрибуты геообъекта %s(%d)', [sTheir, fFRID.RCID]);
               Exit;
+            end;
         end;
       end;
     InsertAssociationsInDM(arcsPosIds);
@@ -2086,7 +2126,7 @@ begin
     // Индекс текущего инфо-объекта
     iCurInfoRec := 0;
 
-    for i := 0 to orderedFeatures.Count do begin
+    for i := 0 to orderedFeatures.Count - 1 do begin
       feature := TFeature(orderedFeatures[i]);
 
       // Если мы дошли до геообъектов, выходим из цикла
