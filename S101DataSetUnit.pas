@@ -1834,12 +1834,12 @@ begin
   Result := False;
   for iFeature := 0 to Length(featureRecords) - 1 do
     with featureRecords[iFeature] do begin
-      if pfFOID <> nil then
-        Dispose(pfFOID);
-      New(pfFOID);
-      pfFOID^.AGEN := m_nAgencyCode;
-      pfFOID^.FIDN := iFeature + 1;
-      pfFOID^.FIDS := 1;
+      if pfFOID = nil then begin
+        New(pfFOID);
+        pfFOID^.AGEN := m_nAgencyCode;
+        pfFOID^.FIDN := iFeature + 1;
+        pfFOID^.FIDS := 1;
+      end;
     end;
   Result := True;
 end;

@@ -40,6 +40,7 @@ type
     function OrderFeatures(dmChainToJSON: TDMChainToJSON; var sWarning: string): Boolean;
     function ObjectsFromDM2(dmChainToJSON: TDMChainToJSON; featuresPosIds: TPosIdPairList): Boolean;
     function InfoObjectsFromDM2(dmChainToJSON: TDMChainToJSON; featuresPosIds: TPosIdPairList): Boolean;
+    function GetFOIDsFromS57(s57DataSet: TS101DataSet): Boolean;
   end;
 
 const idShift: Integer = 1000000000;
@@ -2351,6 +2352,39 @@ begin
 
     Result := True;
   finally
+  end;
+end;
+
+// Заимствуем FOID-ы из одноименной ячейки S-57
+function TS101DataSetDM.GetFOIDsFromS57(s57DataSet: TS101DataSet): Boolean;
+var
+  featuresPosIds: TPosIdPairList;
+  i, index: Integer;
+begin
+  Result := False;
+  if s57DataSet = nil then
+    Exit;
+  featuresPosIds := TPosIdPairList.Create;
+  try
+    for i := 0 to Length(s57DataSet.featureRecords) - 1 do
+      featuresPosIds.Add(TPosIdPair.Create(i, s57DataSet.featureRecords[i].fFRID.RCID));
+    featuresPosIds.Sort;
+    for i := 0 to Length(featureRecords) - 1 do begin
+      index := featuresPosIds.GetPosById(featureRecords[i].fFRID.RCID);
+      if index < 0 then
+        Continue;
+      if s57DataSet.featureRecords[index].pfFOID = nil then
+        Continue;
+      if featureRecords[i].pfFOID <> nil then
+        Dispose(featureRecords[i].pfFOID);
+      New(featureRecords[i].pfFOID);
+      featureRecords[i].pfFOID^.AGEN := s57DataSet.featureRecords[index].pfFOID^.AGEN;
+      featureRecords[i].pfFOID^.FIDN := s57DataSet.featureRecords[index].pfFOID^.FIDN;
+      featureRecords[i].pfFOID^.FIDS := s57DataSet.featureRecords[index].pfFOID^.FIDS;
+    end;
+    Result := True;
+  finally
+    featuresPosIds.Free;
   end;
 end;
 

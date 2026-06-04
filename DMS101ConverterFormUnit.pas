@@ -53,8 +53,8 @@ var
   logPath, sError: string;
   rc : Integer;
 begin
+  s101DataSet := nil;
   try
-    s101DataSet := nil;
     OpenDialog1.Filter := 'S101-файлы (*.000)|*.000';
     OpenDialog1.Title := 'Выберите исходный файл S101';
     if not OpenDialog1.Execute then Exit;
@@ -91,8 +91,8 @@ var
   logPath, sError: string;
   rc: Integer;
 begin
+  s101DataSet := nil;
   try
-    s101DataSet := nil;
     OpenDialog1.Filter := 'JSON-файлы (*.json)|*.json';
     OpenDialog1.Title := 'Выберите исходный JSON-файл';
     if not OpenDialog1.Execute then Exit;
@@ -294,7 +294,8 @@ end;
 procedure TDMS101ConverterForm.btnConvertDMtoS101Click(Sender: TObject);
 var
   s101DataSetDM: TS101DataSetDM;
-  s101FileName, sLogName, sError: string;
+  s57DataSet: TS101DataSet;
+  s101FileName, s57FileName, sLogName, sError: string;
 begin
   OpenDialog1.Filter := 'DM-файлы (*.dm)|*.dm';
   OpenDialog1.Title := 'Выберите DM-файл с классификатором S-101 и цепочно-узловой структурой';
@@ -306,7 +307,22 @@ begin
               [OpenDialog1.FileName, sError]), mtError, [mbOK], 0);
       Exit;
     end;
-    s101FileName :=  ChangeFileExt(ExtractFilePath(OpenDialog1.FileName) + '101' + ExtractFileName(OpenDialog1.FileName), '.000');
+
+    // Если рядом с DM-файлом есть одноименная ячейка S-57, возьмем из нее FOID-ы
+    s57FileName := ChangeFileExt(OpenDialog1.FileName, '.000');
+    if FileExists(s57FileName) then begin
+      s57DataSet := TS101DataSet.Create(m_s101Catalogue);
+      sLogName := ChangeFileExt(s57FileName, '.log');
+      if not s57DataSet.ReadS101Binary(s57FileName, sLogName, sError, true, false) then begin
+        MessageDlg(Format('При чтении файла %s возникла ошибка: %s',
+                [s57FileName, sError]), mtError, [mbOK], 0);
+        Exit;
+      end;
+      s101DataSetDM.GetFOIDsFromS57(s57DataSet);
+    end;
+
+    s101FileName :=  ChangeFileExt(ExtractFilePath(OpenDialog1.FileName) + '101' +
+        ExtractFileName(OpenDialog1.FileName), '.000');
     sLogName := ChangeFileExt(s101FileName, '.log');
     if not s101DataSetDM.ExportToBinary(s101FileName, sLogName, sError) then begin
       MessageDlg(Format('При экспорте файла %s возникла ошибка: %s',
@@ -317,6 +333,7 @@ begin
         [OpenDialog1.FileName]), mtInformation, [mbOK], 0);
   finally
     s101DataSetDM.Free;
+    s57DataSet.Free;
   end;
 end;
 

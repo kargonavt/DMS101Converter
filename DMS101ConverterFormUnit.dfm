@@ -2,7 +2,7 @@ object DMS101ConverterForm: TDMS101ConverterForm
   Left = 192
   Top = 125
   Width = 349
-  Height = 181
+  Height = 174
   Caption = #1050#1086#1085#1074#1077#1088#1090#1077#1088' DM/S101'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
