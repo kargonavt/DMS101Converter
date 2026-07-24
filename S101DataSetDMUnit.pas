@@ -41,6 +41,7 @@ type
     function ObjectsFromDM2(dmChainToJSON: TDMChainToJSON; featuresPosIds: TPosIdPairList): Boolean;
     function InfoObjectsFromDM2(dmChainToJSON: TDMChainToJSON; featuresPosIds: TPosIdPairList): Boolean;
     function GetFOIDsFromS57(s57DataSet: TS101DataSet): Boolean;
+    function SoundingFromDM: Boolean;
   end;
 
 const idShift: Integer = 1000000000;
@@ -2385,6 +2386,24 @@ begin
     Result := True;
   finally
     featuresPosIds.Free;
+  end;
+end;
+
+function TS101DataSetDM.SoundingFromDM: Boolean;
+var
+  i: Integer;
+  feature: TFeature;
+begin
+  Result := False;
+  if (orderedFeatures = nil) or (orderedFeatures.Count = 0) then
+    Exit;
+  try
+    for i := 0 to orderedFeatures.Count - 1 do begin
+      feature := TFeature(orderedFeatures[i]);
+      if feature.name <> 'SOUNDG' then
+        Continue;
+    end;
+  finally
   end;
 end;
 
