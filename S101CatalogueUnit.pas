@@ -1020,6 +1020,7 @@ begin
   Result := GetIndexByKey(our);
 end;
 
+{
 function TAcronymPairs.GetOurByTheir(their: string): string;
 var
   index: Integer;
@@ -1043,6 +1044,17 @@ begin
     Exit;
   end;
   Result := (Self[index] as TAcronymPair).theirAcronym;
+end;
+}
+
+function TAcronymPairs.GetOurByTheir(their: string): string;
+begin
+  Result := their;
+end;
+
+function TAcronymPairs.GetTheirByOur(our: string): string;
+begin
+  Result := our;
 end;
 
 // --------------------- TAcronymsDescendants ---------------------

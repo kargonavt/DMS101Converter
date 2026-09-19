@@ -1762,7 +1762,8 @@ begin
 
   try
     // Формирование списка классов объектов по классификатору
-    objPath := AnsiReplaceStr(GetBinDir, '\bin', '\obj\s100.obj');
+    //objPath := AnsiReplaceStr(GetBinDir, '\bin', '\obj\s100.obj');
+    objPath := AnsiReplaceStr(GetBinDir, '\bin', '\obj\s101.obj');
     if not Obj_Open(PChar(objPath)) then begin
       sError := Format('Не удалось открыть файл %s', [objPath]);
       Exit;
@@ -1780,7 +1781,8 @@ begin
     Obj_Close;
 
     // Формирование списка атрибутов
-    sIdxName := AnsiReplaceStr(GetBinDir, '\bin', '\obj\s100.idx');
+    //sIdxName := AnsiReplaceStr(GetBinDir, '\bin', '\obj\s100.idx');
+    sIdxName := AnsiReplaceStr(GetBinDir, '\bin', '\obj\s101.idx');
     if not idx_Open(PChar(sIdxName)) then begin
       sError := Format('Не удалось открыть файл %s', [sIdxName]);
       Exit;
