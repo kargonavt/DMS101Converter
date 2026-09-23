@@ -476,6 +476,7 @@ var
 //  s101IniFile: TS101IniFile;
   progress: TProgress;
   formatSettings: TFormatSettings;
+  bStop: Boolean;
 begin
   try
     Result := False;
@@ -605,6 +606,8 @@ begin
               end;
             end;
             if logName <> '' then begin
+              if fieldTag = 'ATTR' then
+                bStop := True;
               WriteLn(tfLog, Format(#9'fieldNo=%d, fieldTag=%s, fieldLength=%d, fieldPosition=%d',
                   [i, fieldTag, fieldLength, fieldPosition]));
               Flush(tfLog);

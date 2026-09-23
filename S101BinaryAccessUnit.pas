@@ -827,9 +827,13 @@ begin
   nTags := ExtractStrings(['!', '\'], [' '], PChar(sfTags), sfTagsList);
   nTypes := ExtractStrings([','], [' '], PChar(sfTypes), sfTypesList);
   for iType := 0 to nTypes - 1 do begin
-    if sfTypesList[iType][1] = '{' then
+//    if sfTypesList[iType][1] = '{' then
+//      sfTypesList[iType] := MidStr(sfTypesList[iType], 2, Length(sfTypesList[iType]) - 1);
+//    if sfTypesList[iType][Length(sfTypesList[iType])] = '}' then
+//      sfTypesList[iType] := LeftStr(sfTypesList[iType], Length(sfTypesList[iType]) - 1);
+    if (sfTypesList[iType][1] = '{') or (sfTypesList[iType][1] = '(') then
       sfTypesList[iType] := MidStr(sfTypesList[iType], 2, Length(sfTypesList[iType]) - 1);
-    if sfTypesList[iType][Length(sfTypesList[iType])] = '}' then
+    if (sfTypesList[iType][Length(sfTypesList[iType])] = '}') or (sfTypesList[iType][Length(sfTypesList[iType])] = ')') then
       sfTypesList[iType] := LeftStr(sfTypesList[iType], Length(sfTypesList[iType]) - 1);
   end;
   SetLength(lrFieldDescription.subfieldsDescriptions, nTags);
