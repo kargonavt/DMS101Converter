@@ -38,8 +38,8 @@ type
         atcsPosIds: TPosIdPairList; ssAttributes: TStringList): Boolean;
     function InsertAssociationsInDM(arcsPosIds: TPosIdPairList): Boolean;
     function OrderFeatures(dmChainToJSON: TDMChainToJSON; var sWarning: string): Boolean;
-    function ObjectsFromDM2(dmChainToJSON: TDMChainToJSON; featuresPosIds: TPosIdPairList): Boolean;
-    function InfoObjectsFromDM2(dmChainToJSON: TDMChainToJSON; featuresPosIds: TPosIdPairList): Boolean;
+    function ObjectsFromDM2(dmChainToJSON: TDMChainToJSON; featuresPosIds: TPosIdPairList; var sError: string): Boolean;
+    function InfoObjectsFromDM2(dmChainToJSON: TDMChainToJSON; featuresPosIds: TPosIdPairList; var sError: string): Boolean;
     function GetFOIDsFromS57(s57DataSet: TS101DataSet): Boolean;
     function SoundingFromDM: Boolean;
   end;
@@ -78,6 +78,7 @@ var
   i, j, k, nSurfacesToLeave, nCompositesToLeave, nCurvesToLeave, nPointsToLeave: Integer;
   sWarning: string;
   featuresPosIds: TPosIdPairList;
+  bStop: Boolean;
 begin
   Result := False;
   if dm_Open(PChar(mapPath), False) = 0 then begin
@@ -98,13 +99,15 @@ begin
     featuresPosIds.Sort;
 
 //    InfoObjectsFromDM(dmChainToJSON);
-    InfoObjectsFromDM2(dmChainToJSON, featuresPosIds);
+    if not InfoObjectsFromDM2(dmChainToJSON, featuresPosIds, sError) then
+      Exit;
     PointsFromDM(dmChainToJSON);
     CurvesFromDM(dmChainToJSON);
     CompositesFromDM(dmChainToJSON);
     SurfacesFromDM(dmChainToJSON);
 //    ObjectsFromDM(dmChainToJSON);
-    ObjectsFromDM2(dmChainToJSON, featuresPosIds);
+    if not ObjectsFromDM2(dmChainToJSON, featuresPosIds, sError) then
+      Exit;
 
     pointsRefs := TIntegerList.Create;
     curvesRefs := TIntegerList.Create;
@@ -113,7 +116,9 @@ begin
     addCompositesRefs := TIntegerList.Create;
 
     // Формируем массивы ссылок геообъектов на геометрические записи разнах типов
-    for i := 0 to High(featureRecords) do
+    for i := 0 to High(featureRecords) do begin
+      if featureRecords[i].fFRID.RCID = 34063 then
+        bStop := True;
       for j := 0 to High(featureRecords[i].fSPASArray) do
         for k := 0 to High(featureRecords[i].fSPASArray[j].SPASArray) do
           with featureRecords[i].fSPASArray[j].SPASArray[k] do
@@ -125,6 +130,7 @@ begin
               compositesRefs.Add(TInteger.Create(RRID))
             else if RRNM = Ord(SurfaceRecordType) then
               surfacesRefs.Add(TInteger.Create(RRID));
+    end;
 
     // Удаляем записи массива поверхностей, на которые нет ссылок геообъектов
     surfacesRefs.Sort;
@@ -551,6 +557,7 @@ var
   item: TItem;
   attributeItem: TAttributeItem;
   dValue: Double;
+  bStop: Boolean;
 begin
   Result := False;
   GetLocaleFormatSettings(LOCALE_USER_DEFAULT, formatSettings);
@@ -591,6 +598,8 @@ begin
       Flush(tfDebugLog);
       if s101AttributeName = '' then
         Continue;
+      if sOurAcronym = 'reportedDate' then
+        bStop := True;
       item := s101Catalogue.items.GetItemByName(sOurAcronym);
       if item is TAttributeItem then
         attributeItem := item as TAttributeItem;
@@ -634,7 +643,7 @@ begin
       // Используем уточненный тип атрибута для формирования его значения
       with fATTRArray[0].arrayOfAttrElem[Length(fATTRArray[0].arrayOfAttrElem) - 1] do
         case attrType of
-          _byte, _word, _int, _long, _dbase: begin
+          _byte, _word, _int, _long, _dbase, _bool: begin
             NATC := attributeTypeCode;
             ATIX := 1;
             PAIX := curPAIX;
@@ -662,8 +671,37 @@ begin
           end;
           _string, _text, _latin1: begin
             sValue := PShortString(@attrBuffer)^;
+            // Костыль для обработки строки с усеченной датой в формате DD-MM-YYYY,
+            // в которой отсутствующий компонент заменяется нулями, например, '00-00-2014'
+            if (attrType = _string) and (attributeItem.sValueType = 'S100_CodeList') then begin
+              iDay := 0;
+              iMonth := 0;
+              iYear := 0;
+              Val(MidStr(sValue, 1, 2), iDay, iCode);
+              Val(MidStr(sValue, 4, 2), iMonth, iCode);
+              Val(MidStr(sValue, 7, 4), iYear, iCode);
+              if iYear > 0 then
+                ATVL := Format('%.4d', [iYear])
+              else
+                ATVL := '----';
+              if iMonth > 0 then
+                ATVL := ATVL + Format('%.2d', [iMonth])
+              else
+                ATVL := ATVL + '--';
+              if iDay > 0 then
+                ATVL := ATVL + Format('%.2d', [iDay])
+              else
+                ATVL := ATVL + '--';
+              NATC := attributeTypeCode;
+              ATIX := 1;
+              PAIX := curPAIX;
+              ATIN := 1;
+              Writeln(tfDebugLog, Format('NATC=%d, ATIX=%d, PAIX=%d, ATIN=%d, ATVL=%s',
+                  [NATC, ATIX, PAIX, ATIN, ATVL]));
+              Flush(tfDebugLog);
+            end
             // Если строковый атрибут имеет тип list, формируется массив целочисленных значений
-            if attrTypeFromClassifier = _list then begin
+            else if attrTypeFromClassifier = _list then begin
               curATIX := 1;
               iPos := 1;
               while True do begin
@@ -792,7 +830,7 @@ begin
           s := AnsiString(multiByteStr);
           iPos := AnsiPos('/', s);
           if iPos < 2 then
-            Writeln(tfLog, Format('Комплексный атрибут %d не описан в классификаторе S-101', [iCode]))
+            Writeln(tfDebugLog, Format('Комплексный атрибут %d не описан в классификаторе S-101', [iCode]))
           else begin
             sOurAcronym := AnsiLeftStr(s, iPos - 1);
             // Определяем акроним атрибута по каталогу S-101
@@ -1488,7 +1526,8 @@ begin
         if attrRec.attrItem is TAttributeItem then begin
           attrItem := TAttributeItem(attrRec.attrItem);
           if (attrItem.sValueType = 'integer') or (attrItem.sValueType = 'enumeration') then begin
-            if attrRec.tag = _list then begin
+            //if attrRec.tag = _list then begin
+            if (attrRec.tag = _list) or (attrRec.tag = _dBase) then begin
               sList := ATVL;
               j := i + 1;
               while j <= High(attrElemArray) do begin
@@ -1571,7 +1610,7 @@ begin
           end
           else if attrItem.sValueType = 'S100_CodeList' then begin
             case attrRec.tag of
-              _date: begin
+              _date, _string: begin
                 sYear := LeftStr(ATVL, 4);
                 sMonth := MidStr(ATVL, 5, 2);
                 sDay := RightStr(ATVL, 2);
@@ -1587,8 +1626,12 @@ begin
                   iDay := 0
                 else
                   Val(sDay, iDay, code);
-                iDate := iYear * 10000 + iMonth * 100 + iDay;
-                dm_Put_Int(attrRec.attrNum, iDate);
+                if attrRec.tag = _date then begin
+                  iDate := iYear * 10000 + iMonth * 100 + iDay;
+                  dm_Put_Int(attrRec.attrNum, iDate);
+                end
+                else
+                  dm_Put_String(attrRec.attrNum, PChar(Format('%.2d-%.2d-%.4d', [iDay, iMonth, iYear])));
               end;
             end;
           end;
@@ -2006,7 +2049,7 @@ begin
             dm_Add_Object(objRec.code, 50, 2, nil, nil, nil, False);
           end;
           dm_Put_Long(1000, fFRID.RCID);
-          if fFRID.RCID = 3 then
+          if fFRID.RCID = 34068 then
             bStop := True;
           if (Length(fATTRArray) > 0) and (Length(fATTRArray[0].arrayOfAttrElem) > 0) then
             if not InsertAttributesInDM(TAttrElemArray(fATTRArray[0].arrayOfAttrElem),
@@ -2017,6 +2060,8 @@ begin
         end;
       end;
     InsertAssociationsInDM(arcsPosIds);
+
+    dm_rebound(True);
 
     dm_Done;
     Result := True;
@@ -2113,12 +2158,13 @@ begin
   end;
 end;
 
-function TS101DataSetDM.InfoObjectsFromDM2(dmChainToJSON: TDMChainToJSON; featuresPosIds: TPosIdPairList): Boolean;
+function TS101DataSetDM.InfoObjectsFromDM2(dmChainToJSON: TDMChainToJSON; featuresPosIds: TPosIdPairList; var sError: string): Boolean;
 var
   i, j, featureTypeCode, iCurInfoRec, id: Integer;
   feature: TFeature;
   s101FeatureName: string;
   empty: TFASCFieldArray;
+  bStop: Boolean;
 begin
   Result := False;
   if (orderedFeatures = nil) or (orderedFeatures.Count = 0) then
@@ -2132,6 +2178,11 @@ begin
 
     for i := 0 to orderedFeatures.Count - 1 do begin
       feature := TFeature(orderedFeatures[i]);
+
+      if not (s101Catalogue.items.GetItemByName(feature.name) is TFeatureOrInfoItem) then begin
+        sError := Format('Обнаружен неизвестный акроним %s информационного или геообъекта', [feature.name]);
+        Exit;
+      end;
 
       // Если мы дошли до геообъектов, выходим из цикла
       if s101Catalogue.items.GetItemByName(feature.name) is TFeatureItem then
@@ -2198,7 +2249,7 @@ begin
   end;
 end;
 
-function TS101DataSetDM.ObjectsFromDM2(dmChainToJSON: TDMChainToJSON; featuresPosIds: TPosIdPairList): Boolean;
+function TS101DataSetDM.ObjectsFromDM2(dmChainToJSON: TDMChainToJSON; featuresPosIds: TPosIdPairList; var sError: string): Boolean;
 var
   i, j, featureTypeCode, iCurGeoRec: Integer;
   feature: TFeature;
@@ -2225,6 +2276,10 @@ begin
           [i, feature.id, feature.name, feature.loc, feature.code]));
       Flush(tfDebugLog);
 
+      if not (s101Catalogue.items.GetItemByName(feature.name) is TFeatureOrInfoItem) then begin
+        sError := Format('Обнаружен неизвестный акроним %s информационного или геообъекта', [feature.name]);
+        Exit;
+      end;
       // Если это инфо-объект, пропускаем
       if not (s101Catalogue.items.GetItemByName(feature.name) is TFeatureItem) then
         Continue;
@@ -2336,7 +2391,7 @@ begin
           end;
         end;
 
-        if feature.id = 22056 then
+        if feature.id = 34063 then
           bStop := True;
 
         // Заполним атрибуты объекта

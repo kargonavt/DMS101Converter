@@ -228,6 +228,8 @@ type
     function FillAcronymsDescendants: Boolean;
     function FillRoleTypesOfBindings: Boolean;
     function InheritAttributes: Boolean;
+    function HasAttribute(objectName, attributeName: string): Boolean;
+    function IsAttributeMandatory(objectName, attributeName: string): Boolean;
   public
     name: string;
     producer: string;
@@ -928,6 +930,58 @@ begin
   end;
   roleTypesOfBindings.Sort(CompareRoleTypesOfBindings);
   Result := True;
+end;
+
+function TS101Catalogue.HasAttribute(objectName, attributeName: string): Boolean;
+var
+  item, parentItem: TItem;
+  attributes: TAttributeRefArray;
+  i: Integer;
+begin
+  Result := False;
+  if (objectName = '') or (attributeName = '') or (items = nil) then
+    Exit;
+  item := items.GetItemByName(objectName);
+  if item is TObjectItem then
+    attributes := TAttributeRefArray((item as TObjectItem).attributes)
+  else if item is TComplexAttributeItem then
+    attributes := TAttributeRefArray((item as TComplexAttributeItem).children)
+  else
+    Exit;
+  for i := 0 to High(attributes) do begin
+    if attributes[i].sCode = attributeName then begin
+      Result := True;
+      Exit;
+    end;
+  end;
+  if (item is TObjectItem) and ((item as TObjectItem).sParent <> '') then
+    Result := HasAttribute((item as TObjectItem).sParent, attributeName);
+end;
+
+function TS101Catalogue.IsAttributeMandatory(objectName, attributeName: string): Boolean;
+var
+  item, parentItem: TItem;
+  attributes: TAttributeRefArray;
+  i: Integer;
+begin
+  Result := False;
+  if (objectName = '') or (attributeName = '') or (items = nil) then
+    Exit;
+  item := items.GetItemByName(objectName);
+  if item is TObjectItem then
+    attributes := TAttributeRefArray((item as TObjectItem).attributes)
+  else if item is TComplexAttributeItem then
+    attributes := TAttributeRefArray((item as TComplexAttributeItem).children)
+  else
+    Exit;
+  for i := 0 to High(attributes) do begin
+    if attributes[i].sCode = attributeName then begin
+      Result := attributes[i].multiplicity.lower > 0;
+      Exit;
+    end;
+  end;
+  if (item is TObjectItem) and ((item as TObjectItem).sParent <> '') then
+    Result := IsAttributeMandatory((item as TObjectItem).sParent, attributeName);
 end;
 
 // --------------------- TCatalogueItems ---------------------
