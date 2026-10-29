@@ -261,7 +261,8 @@ begin
     DCOZ := ReadFloat('DSSI', 'DCOZ', 0);
     CMFX := ReadInteger('DSSI', 'CMFX', 10000000);
     CMFY := ReadInteger('DSSI', 'CMFY', 10000000);
-    CMFZ := ReadInteger('DSSI', 'CMFZ', 100);
+//    CMFZ := ReadInteger('DSSI', 'CMFZ', 100);
+    CMFZ := ReadInteger('DSSI', 'CMFZ', 10);
   end;
   Result := True;
 end;

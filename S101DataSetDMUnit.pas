@@ -60,7 +60,8 @@ begin
     DCOZ := 0;
     CMFX := 10000000;
     CMFY := 10000000;
-    CMFZ := 100;
+//    CMFZ := 100;
+    CMFZ := 10;
   end;
   orderedFeatures := TObjectList.Create(False);
 end;

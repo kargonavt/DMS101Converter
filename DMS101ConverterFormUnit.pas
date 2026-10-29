@@ -321,8 +321,12 @@ begin
       s101DataSetDM.GetFOIDsFromS57(s57DataSet);
     end;
 
-    s101FileName :=  ChangeFileExt(ExtractFilePath(OpenDialog1.FileName) + '101' +
-        ExtractFileName(OpenDialog1.FileName), '.000');
+//    s101FileName :=  ChangeFileExt(ExtractFilePath(OpenDialog1.FileName) + '101' +
+//        ExtractFileName(OpenDialog1.FileName), '.000');
+    s101FileName :=  UpperCase(ChangeFileExt(ExtractFilePath(OpenDialog1.FileName) + '101'
+        + LeftStr(ExtractFileName(OpenDialog1.FileName), 2) + '00'
+        + MidStr(ExtractFileName(OpenDialog1.FileName), 3, 255), '.000'));
+
     sLogName := ChangeFileExt(s101FileName, '.log');
     if not s101DataSetDM.ExportToBinary(s101FileName, sLogName, sError) then begin
       MessageDlg(Format('При экспорте файла %s возникла ошибка: %s',
