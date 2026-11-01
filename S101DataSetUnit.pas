@@ -1891,6 +1891,14 @@ begin
                 with fC2ILArray[j].C2ITArray[k] do begin
                   lon := DCOX + XCOO / CMFX;
                   lat := DCOY + YCOO / CMFY;
+                  if lat < latMin then
+                    latMin := lat;
+                  if lon < lonMin then
+                    lonMin := lon;
+                  if lat > latMax then
+                    latMax := lat;
+                  if lon > lonMax then
+                    lonMax := lon;
                 end;
           ct3I:
             for j := 0 to High(fC3ILArray) do
@@ -1898,16 +1906,16 @@ begin
                 with fC3ILArray[j].C3ITArray[k] do begin
                   lon := DCOX + XCOO / CMFX;
                   lat := DCOY + YCOO / CMFY;
+                  if lat < latMin then
+                    latMin := lat;
+                  if lon < lonMin then
+                    lonMin := lon;
+                  if lat > latMax then
+                    latMax := lat;
+                  if lon > lonMax then
+                    lonMax := lon;
                 end;
         end;
-      if lat < latMin then
-        latMin := lat;
-      if lon < lonMin then
-        lonMin := lon;
-      if lat > latMax then
-        latMax := lat;
-      if lon > lonMax then
-        lonMax := lon;
     end;
     for i := 0 to High(curveRecords) do begin
       with curveRecords[i] do
@@ -1917,15 +1925,15 @@ begin
               with fSegmentArray[j].fC2ILArray[k].C2ITArray[l] do begin
                 lon := DCOX + XCOO / CMFX;
                 lat := DCOY + YCOO / CMFY;
+                if lat < latMin then
+                  latMin := lat;
+                if lon < lonMin then
+                  lonMin := lon;
+                if lat > latMax then
+                  latMax := lat;
+                if lon > lonMax then
+                  lonMax := lon;
               end;
-      if lat < latMin then
-        latMin := lat;
-      if lon < lonMin then
-        lonMin := lon;
-      if lat > latMax then
-        latMax := lat;
-      if lon > lonMax then
-        lonMax := lon;
     end;
   end;
   Result := True;
