@@ -22,7 +22,8 @@ type
     function CurvesFromDM(var dmChainToJSON: TDMChainToJSON): Boolean;
     function CompositesFromDM(var dmChainToJSON: TDMChainToJSON): Boolean;
     function SurfacesFromDM(var dmChainToJSON: TDMChainToJSON): Boolean;
-    function ObjectAttributesFromDM(var fATTRArray: TATTRFieldArray; curPAIX: Integer = 0): Boolean;
+    function ObjectAttributesFromDM(objectName: string; var fATTRArray: TATTRFieldArray;
+        curPAIX: Integer = 0): Boolean;
     function FeatureAssociationsFromDM(feature: TFeature; features: TObjectList;
         featuresPosIds: TPosIdPairList; var fINASArray: TINASFieldArray;
         var fFASCArray: TFASCFieldArray): Boolean;
@@ -42,6 +43,8 @@ type
     function InfoObjectsFromDM2(dmChainToJSON: TDMChainToJSON; featuresPosIds: TPosIdPairList; var sError: string): Boolean;
     function GetFOIDsFromS57(s57DataSet: TS101DataSet): Boolean;
     function SoundingFromDM: Boolean;
+    function ExportUnknownMandatoryAttributes(ssUnknownMandatoryAttributes: TStringList;
+        var fATTRArray: TATTRFieldArray; curPAIX: Integer = 0): Boolean;
   end;
 
 const idShift: Integer = 1000000000;
@@ -541,7 +544,65 @@ begin
   Result := True;
 end;
 
-function TS101DataSetDM.ObjectAttributesFromDM(var fATTRArray: TATTRFieldArray; curPAIX: Integer = 0): Boolean;
+function TS101DataSetDM.ExportUnknownMandatoryAttributes(ssUnknownMandatoryAttributes: TStringList;
+    var fATTRArray: TATTRFieldArray; curPAIX: Integer = 0): Boolean;
+var
+  index, i, iCode, attributeTypeCode: Integer;
+  sOurAcronym, s101AttributeName, sCode, s: string;
+  nestedMandatoryAttributes: TStringList;
+begin
+  for index := 0 to ssUnknownMandatoryAttributes.Count - 1 do begin
+    sOurAcronym := ssUnknownMandatoryAttributes[index];
+    s101AttributeName := s101Catalogue.acronymPairs.GetTheirByOur(sOurAcronym);
+    if s101AttributeName = '' then
+      Continue;
+    // Определяем числовой код типа атрибута
+    attributeTypeCode := 0;
+    for i := 0 to Length(dsGeneralInfo.fATCS) - 1 do begin
+      with dsGeneralInfo.fATCS[i] do
+        if sCode = s101AttributeName then begin
+          attributeTypeCode := iCode;
+          Break;
+        end;
+    end;
+    if attributeTypeCode = 0 then begin
+      SetLength(dsGeneralInfo.fATCS, Length(dsGeneralInfo.fATCS) + 1);
+      with dsGeneralInfo.fATCS[Length(dsGeneralInfo.fATCS) - 1] do begin
+        sCode := s101AttributeName;
+        iCode := Length(dsGeneralInfo.fATCS);
+        attributeTypeCode := iCode;
+      end;
+    end;
+    if Length(fATTRArray) = 0 then
+      SetLength(fATTRArray, 1);
+    SetLength(fATTRArray[0].arrayOfAttrElem, Length(fATTRArray[0].arrayOfAttrElem) + 1);
+    with fATTRArray[0].arrayOfAttrElem[Length(fATTRArray[0].arrayOfAttrElem) - 1] do begin
+      NATC := attributeTypeCode;
+      ATIX := 1;
+      PAIX := curPAIX;
+      ATIN := 1;
+      ATVL := '';
+    end;
+    if s101Catalogue.items.GetItemByName(sOurAcronym) is TComplexAttributeItem then begin
+      nestedMandatoryAttributes := s101Catalogue.GetMandatoryAttributes(sOurAcronym);
+      if nestedMandatoryAttributes.Count > 0 then begin
+        s := '';
+        for i := 0 to nestedMandatoryAttributes.Count - 1 do begin
+          if i > 0 then
+            s := s + ', ';
+          s := s + nestedMandatoryAttributes[i];
+        end;
+        Writeln(tfDebugLog, Format('У комплексного атрибута %s отсутствуют обязательные атрибуты: %s', [sOurAcronym, s]));
+        Flush(tfDebugLog);
+      end;
+      ExportUnknownMandatoryAttributes(nestedMandatoryAttributes, fATTRArray,
+          Length(fATTRArray[0].arrayOfAttrElem));
+    end;
+  end;
+end;
+
+function TS101DataSetDM.ObjectAttributesFromDM(objectName: string;
+    var fATTRArray: TATTRFieldArray; curPAIX: Integer = 0): Boolean;
 var
   formatSettings: TFormatSettings;
   attributesPool: TPool;
@@ -558,11 +619,17 @@ var
   item: TItem;
   attributeItem: TAttributeItem;
   dValue: Double;
+  mandatoryAttributes: TStringList;
+  index: Integer;
   bStop: Boolean;
 begin
   Result := False;
   GetLocaleFormatSettings(LOCALE_USER_DEFAULT, formatSettings);
   formatSettings.DecimalSeparator := '.';
+
+  mandatoryAttributes := s101Catalogue.GetMandatoryAttributes(objectName);
+  if mandatoryAttributes.Count > 0 then
+    bStop := True;
 
   // Обработка простых атрибутов
   // Читаем атрибуты в буфер
@@ -599,6 +666,11 @@ begin
       Flush(tfDebugLog);
       if s101AttributeName = '' then
         Continue;
+
+      index := mandatoryAttributes.IndexOf(sOurAcronym);
+      if index >= 0 then
+        mandatoryAttributes.Delete(index);
+
       item := s101Catalogue.items.GetItemByName(sOurAcronym);
       if item is TAttributeItem then
         attributeItem := item as TAttributeItem;
@@ -840,6 +912,11 @@ begin
               if not dm_Goto_right then Break;
               Continue;
             end;
+
+            index := mandatoryAttributes.IndexOf(sOurAcronym);
+            if index >= 0 then
+              mandatoryAttributes.Delete(index);
+
             // Определяем числовой код типа атрибута
             attributeTypeCode := 0;
             for i := 0 to Length(dsGeneralInfo.fATCS) - 1 do begin
@@ -882,7 +959,7 @@ begin
             end;
             // Рекурсивно вызываем ObjectAttributesFromDM для обработки вложенных атрибутов,
             // передав в качестве параметра curPAIX индекс нового комплексного атрибута
-            ObjectAttributesFromDM(fATTRArray, Length(fATTRArray[0].arrayOfAttrElem));
+            ObjectAttributesFromDM(sOurAcronym, fATTRArray, Length(fATTRArray[0].arrayOfAttrElem));
           end;
         end;
       end;
@@ -890,6 +967,19 @@ begin
     end;
   end;
   dm_Goto_node(pOld);
+
+  if mandatoryAttributes.Count > 0 then begin
+    s := '';
+    for i := 0 to mandatoryAttributes.Count - 1 do begin
+      if i > 0 then
+        s := s + ', ';
+      s := s + mandatoryAttributes[i];
+    end;
+    Writeln(tfDebugLog, Format('У объекта %s отсутствуют обязательные атрибуты: %s', [objectName, s]));
+    Flush(tfDebugLog);
+  end;
+  ExportUnknownMandatoryAttributes(mandatoryAttributes, fATTRArray, curPAIX);
+
   Result := True;
 end;
 
@@ -1523,6 +1613,11 @@ begin
         end;
         attrRec := TAttrRec(ssAttributes.Objects[acronymIndex]);
         if attrRec.attrItem is TAttributeItem then begin
+          // Пропускаем пустые атрибуты
+          if ATVL = '' then begin
+            i := i + 1;
+            Continue;
+          end;
           attrItem := TAttributeItem(attrRec.attrItem);
           if (attrItem.sValueType = 'integer') or (attrItem.sValueType = 'enumeration') then begin
             //if attrRec.tag = _list then begin
@@ -2230,7 +2325,7 @@ begin
 
         // Заполним атрибуты объекта
         SetLength(fATTRArray, 0);
-        ObjectAttributesFromDM(TATTRFieldArray(fATTRArray));
+        ObjectAttributesFromDM(feature.name, TATTRFieldArray(fATTRArray));
 
         // Заполним ассоциации объекта
         empty := nil;
@@ -2395,7 +2490,7 @@ begin
 
         // Заполним атрибуты объекта
         SetLength(fATTRArray, 0);
-        ObjectAttributesFromDM(TATTRFieldArray(fATTRArray));
+        ObjectAttributesFromDM(feature.name, TATTRFieldArray(fATTRArray));
 
         // Заполним ассоциации объекта
         FeatureAssociationsFromDM(feature, dmChainToJSON.features, featuresPosIds,
