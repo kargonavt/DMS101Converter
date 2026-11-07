@@ -599,8 +599,6 @@ begin
       Flush(tfDebugLog);
       if s101AttributeName = '' then
         Continue;
-      if sOurAcronym = 'reportedDate' then
-        bStop := True;
       item := s101Catalogue.items.GetItemByName(sOurAcronym);
       if item is TAttributeItem then
         attributeItem := item as TAttributeItem;

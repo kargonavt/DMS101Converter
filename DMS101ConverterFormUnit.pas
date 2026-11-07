@@ -16,6 +16,7 @@ type
     btnDMtoS101batch: TButton;
     OpenDialog1: TOpenDialog;
     SaveDialog1: TSaveDialog;
+    btnTest: TButton;
     procedure btnConvertBinaryToJSONClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -28,6 +29,7 @@ type
     procedure btnConvertDMtoS101Click(Sender: TObject);
     procedure btnConvertS101toDMClick(Sender: TObject);
     procedure btnDMtoS101batchClick(Sender: TObject);
+    procedure btnTestClick(Sender: TObject);
   private
     m_s101Catalogue: TS101Catalogue;
     m_catalogueFolder: string;
@@ -478,6 +480,40 @@ begin
   until FindNext(fsr) <> 0;
   FindClose(fsr);
   MessageDlg(Format('Пакетное преобразование файлов %s завершено', [directory + '*.dm']), mtInformation, [mbOK], 0);
+end;
+
+procedure TDMS101ConverterForm.btnTestClick(Sender: TObject);
+var
+  mandatoryAttributes: TStringList;
+  s: string;
+  i, j: Integer;
+  item, attrItem: TItem;
+  attributeRef: TAttributeRef;
+begin
+{
+  mandatoryAttributes := m_s101Catalogue.GetMandatoryAttributes('CardinalBuoy');
+  s := '';
+  for i := 0 to mandatoryAttributes.Count - 1 do
+    s := s + mandatoryAttributes[i] + #10;
+  MessageDlg(s, mtInformation, [mbOK], 0);
+}
+  for i := 0 to m_s101Catalogue.items.Count - 1 do begin
+    item := m_s101Catalogue.items[i] as TItem;
+    s := item.sCode + #10;
+    s := '';
+    if (item is TObjectItem) or (item is TComplexAttributeItem) then begin
+      mandatoryAttributes := m_s101Catalogue.GetMandatoryAttributes(TItem(item).sCode);
+      for j := 0 to mandatoryAttributes.Count - 1 do begin
+        attrItem := m_s101Catalogue.items.GetItemByName(mandatoryAttributes[j]);
+        if attrItem is TComplexAttributeItem then
+          s := s + #9 + attrItem.sCode + #10;
+      end;
+    end;
+    if s <> '' then begin
+      s := item.sCode + #10 + s;
+      MessageDlg(s, mtInformation, [mbOK], 0);
+    end;
+  end;
 end;
 
 begin

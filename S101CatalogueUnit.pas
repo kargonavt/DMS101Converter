@@ -230,6 +230,7 @@ type
     function InheritAttributes: Boolean;
     function HasAttribute(objectName, attributeName: string): Boolean;
     function IsAttributeMandatory(objectName, attributeName: string): Boolean;
+    function GetMandatoryAttributes(objectName: string): TStringList;
   public
     name: string;
     producer: string;
@@ -934,7 +935,7 @@ end;
 
 function TS101Catalogue.HasAttribute(objectName, attributeName: string): Boolean;
 var
-  item, parentItem: TItem;
+  item: TItem;
   attributes: TAttributeRefArray;
   i: Integer;
 begin
@@ -960,7 +961,7 @@ end;
 
 function TS101Catalogue.IsAttributeMandatory(objectName, attributeName: string): Boolean;
 var
-  item, parentItem: TItem;
+  item: TItem;
   attributes: TAttributeRefArray;
   i: Integer;
 begin
@@ -982,6 +983,32 @@ begin
   end;
   if (item is TObjectItem) and ((item as TObjectItem).sParent <> '') then
     Result := IsAttributeMandatory((item as TObjectItem).sParent, attributeName);
+end;
+
+function TS101Catalogue.GetMandatoryAttributes(objectName: string): TStringList;
+var
+  item: TItem;
+  attributes: TAttributeRefArray;
+  i: Integer;
+  mandatoryAttributes: TStringList;
+begin
+  Result := nil;
+  if (objectName = '') or (items = nil) then
+    Exit;
+  item := items.GetItemByName(objectName);
+  if item is TObjectItem then
+    attributes := TAttributeRefArray((item as TObjectItem).attributes)
+  else if item is TComplexAttributeItem then
+    attributes := TAttributeRefArray((item as TComplexAttributeItem).children)
+  else
+    Exit;
+  Result := TStringList.Create;
+  Result.Sorted := True;
+  for i := 0 to High(attributes) do
+    if attributes[i].multiplicity.lower > 0 then
+      Result.Append(attributes[i].sCode);
+  if (item is TObjectItem) and ((item as TObjectItem).sParent <> '') then
+    Result.AddStrings(GetMandatoryAttributes((item as TObjectItem).sParent));
 end;
 
 // --------------------- TCatalogueItems ---------------------
