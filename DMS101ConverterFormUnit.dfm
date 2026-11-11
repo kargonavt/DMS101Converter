@@ -2,7 +2,7 @@ object DMS101ConverterForm: TDMS101ConverterForm
   Left = 192
   Top = 125
   Width = 349
-  Height = 210
+  Height = 144
   Caption = #1050#1086#1085#1074#1077#1088#1090#1077#1088' DM/S101'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -35,20 +35,22 @@ object DMS101ConverterForm: TDMS101ConverterForm
   end
   object btnDMtoS101batch: TButton
     Left = 50
-    Top = 88
+    Top = 152
     Width = 233
     Height = 25
     Caption = #1055#1072#1082#1077#1090#1085#1086#1077' '#1087#1088#1077#1086#1073#1088#1072#1079#1086#1074#1072#1085#1080#1077' DM --> S-101'
     Enabled = False
     TabOrder = 2
+    Visible = False
   end
   object btnTest: TButton
     Left = 129
-    Top = 128
+    Top = 184
     Width = 75
     Height = 25
     Caption = 'Test'
     TabOrder = 3
+    Visible = False
     OnClick = btnTestClick
   end
   object OpenDialog1: TOpenDialog

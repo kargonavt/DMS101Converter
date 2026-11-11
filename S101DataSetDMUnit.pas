@@ -35,6 +35,7 @@ type
         var pXYLine: PLLine): Boolean;
     function GetCurveGeometry(id, orient: Integer; curvesPosIds: TPosIdPairList;
         var pXYLine: PLLine): Boolean;
+//    function IsAttrbuteEmpty(attrElemArray: TAttrElemArray; attrIndex: Integer; var nextAttrIndex: Integer): Boolean;
     function InsertAttributesInDM(attrElemArray: TAttrElemArray;
         atcsPosIds: TPosIdPairList; ssAttributes: TStringList): Boolean;
     function InsertAssociationsInDM(arcsPosIds: TPosIdPairList): Boolean;
@@ -550,6 +551,7 @@ var
   index, i, iCode, attributeTypeCode: Integer;
   sOurAcronym, s101AttributeName, sCode, s: string;
   nestedMandatoryAttributes: TStringList;
+  pOld, scale: Integer;
 begin
   for index := 0 to ssUnknownMandatoryAttributes.Count - 1 do begin
     sOurAcronym := ssUnknownMandatoryAttributes[index];
@@ -581,7 +583,16 @@ begin
       ATIX := 1;
       PAIX := curPAIX;
       ATIN := 1;
-      ATVL := '';
+      // Возьмем оптимальный масштаб из паспорта карты
+      if s101AttributeName = 'optimumDisplayScale' then begin
+        pOld := dm_Object;
+        dm_Goto_Root;
+        dm_Get_Long(904, 0, scale);
+        ATVL := Format('%d', [scale]);
+        dm_Goto_Node(pOld);
+      end
+      else
+        ATVL := '';
     end;
     if s101Catalogue.items.GetItemByName(sOurAcronym) is TComplexAttributeItem then begin
       nestedMandatoryAttributes := s101Catalogue.GetMandatoryAttributes(sOurAcronym);
@@ -880,6 +891,16 @@ begin
             else
               sDay := Format('%.2d', [iDay]);
             ATVL := sYear + sMonth + sDay;
+            Writeln(tfDebugLog, Format('NATC=%d, ATIX=%d, PAIX=%d, ATIN=%d, ATVL=%s',
+                [NATC, ATIX, PAIX, ATIN, ATVL]));
+            Flush(tfDebugLog);
+          end;
+          _unk: begin
+            NATC := attributeTypeCode;
+            ATIX := 1;
+            PAIX := curPAIX;
+            ATIN := 1;
+            ATVL := '';
             Writeln(tfDebugLog, Format('NATC=%d, ATIX=%d, PAIX=%d, ATIN=%d, ATVL=%s',
                 [NATC, ATIX, PAIX, ATIN, ATVL]));
             Flush(tfDebugLog);
@@ -1559,6 +1580,47 @@ begin
   Result := True;
 end;
 
+{
+function TS101DataSetDM.IsAttrbuteEmpty(attrElemArray: TAttrElemArray; attrIndex: Integer;
+    var nextAttrIndex: Integer): Boolean;
+var
+  s101Acronym, sOurAcronym: string;
+  item: TItem;
+begin
+  Result := True;
+  nextAttrIndex := -1;
+  if (attrElemArray = nil) or (attrIndex < 0) or (attrIndex > High(attrElemArray)) or (s101Catalogue = nil) then
+    Exit;
+  with attrElemArray[attrIndex] do begin
+    s101Acronym := dsGeneralInfo.fATCS[atcsPosIds.GetPosById(NATC)].sCode;
+    if s101Acronym = '' then
+      Exit;
+    sOurAcronym := s101Catalogue.acronymPairs.GetOurByTheir(s101Acronym);
+    if sOurAcronym = '' then
+      Exit;
+    item := s101Catalogue.items.GetItemByName(sOurAcronym);
+    if item is TAttributeItem then begin
+      if ATVL = '' then begin
+        nextAttrIndex := attrIndex + 1;
+        Exit;
+      end
+      else begin
+        nextAttrIndex := attrIndex;
+        Result := False;
+        Exit;
+      end;
+    end
+    else if item is TComplexAttributeItem begin
+      if ATVL = '' then begin
+      end
+      else
+    end
+    else
+      Exit;
+  end;
+end;
+}
+
 function TS101DataSetDM.InsertAttributesInDM(attrElemArray: TAttrElemArray;
     atcsPosIds: TPosIdPairList; ssAttributes: TStringList): Boolean;
 var
@@ -1573,6 +1635,8 @@ var
   multiByteStr: TShortStr;
   iDate, iYear, iMonth, iDay: Integer;
   sYear, sMonth, sDay: string;
+  bFoundNonEmptyValue: Boolean;
+  pOld: Integer;
 begin
   Result := False;
   paixStack := TObjectStack.Create;
@@ -1588,8 +1652,6 @@ begin
           curPAIX := 0
         else
           curPAIX := TInteger(paixStack.Peek).iValue;
-//        if PAIX > curPAIX then
-//          Exit;
         if PAIX > curPAIX then begin
           i := i + 1;
           Continue;
@@ -1657,7 +1719,13 @@ begin
               _int: dm_Put_Int(attrRec.attrNum, intValue);
               _long: dm_Put_Long(attrRec.attrNum, intValue);
               _dBase: dm_Put_dBase(attrRec.attrNum, intValue);
-            end
+            end;
+            if s101Acronym = 'optimumDisplayScale' then begin
+              pOld := dm_Object;
+              dm_Goto_Root;
+              dm_Put_Long(904, intValue);
+              dm_Goto_node(pOld);
+            end;
           end
           else if attrItem.sValueType = 'real' then begin
             Val(ATVL, realValue, code);
@@ -1698,8 +1766,10 @@ begin
                     multiByteStr, SizeOf(TShortStr), PChar(0), PBOOL(0));
                 dm_Put_String(attrRec.attrNum, multiByteStr);
               end;
-              _text, _unicode:
-                dm_Put_Text(attrRec.attrNum, UTF8Decode(ATVL));
+              _text, _unicode: begin
+                //dm_Put_Text(attrRec.attrNum, UTF8Decode(ATVL));
+                dm_Put_Unicode(attrRec.attrNum, PWideChar(UTF8Decode(ATVL)));
+              end;
             end;
           end
           else if attrItem.sValueType = 'S100_CodeList' then begin
@@ -1731,9 +1801,28 @@ begin
           end;
         end
         else if attrRec.attrItem is TComplexAttributeItem then begin
-          pdt := dm_Add_DataType(attrRec.attrNum, nil);
-          dm_Goto_Node(pdt);
-          paixStack.Push(TInteger.Create(i + 1));
+          // Проверим, не является ли комплексный атрибут пустым.
+          // Если является, пропускаем его, иначе обрабатываем.
+          bFoundNonEmptyValue := False;
+          j := i + 1;
+          while j <= High(attrElemArray) do begin
+            if attrElemArray[j].PAIX <= curPAIX then
+              Break
+            else if attrElemArray[j].ATVL <> '' then begin
+              bFoundNonEmptyValue := True;
+              Break;
+            end;
+            j := j + 1;
+          end;
+          if bFoundNonEmptyValue then begin
+            pdt := dm_Add_DataType(attrRec.attrNum, nil);
+            dm_Goto_Node(pdt);
+            paixStack.Push(TInteger.Create(i + 1));
+          end
+          else begin
+            i := j;
+            Continue;
+          end;
         end
         else
           Exit;
@@ -2143,7 +2232,7 @@ begin
             dm_Add_Object(objRec.code, 50, 2, nil, nil, nil, False);
           end;
           dm_Put_Long(1000, fFRID.RCID);
-          if fFRID.RCID = 34068 then
+          if fFRID.RCID = 424542 then
             bStop := True;
           if (Length(fATTRArray) > 0) and (Length(fATTRArray[0].arrayOfAttrElem) > 0) then
             if not InsertAttributesInDM(TAttrElemArray(fATTRArray[0].arrayOfAttrElem),
@@ -2154,6 +2243,9 @@ begin
         end;
       end;
     InsertAssociationsInDM(arcsPosIds);
+
+    dm_Goto_Root;
+    dm_Put_String(903, 'S101');
 
     dm_rebound(True);
 
